@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ATXRaspi/MightyHat interrupt based shutdown/reboot script
 # Script by Felix Rusu

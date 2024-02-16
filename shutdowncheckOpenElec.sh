@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #This is GPIO 7 (pin 26 on the pinout diagram).
 #This is an input from ATXRaspi to the Pi.

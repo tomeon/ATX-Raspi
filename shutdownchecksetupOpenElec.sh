@@ -1,7 +1,7 @@
 #!/bin/sh
 
 curl -fsSlo /storage/.config/shutdowncheck.sh /etc/shutdownirq.py https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheckOpenElec.sh
-echo '#!/bin/bash
+echo '#!/bin/sh
 (
 /storage/.config/shutdowncheck.sh
 )&' > /storage/.config/autostart.sh

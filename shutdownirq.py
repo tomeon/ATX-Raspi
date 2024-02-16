@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # ATXRaspi/MightyHat interrupt based shutdown/reboot script
 # Script by Tony Pottier, Felix Rusu

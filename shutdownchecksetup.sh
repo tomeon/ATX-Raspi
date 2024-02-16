@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 OPTION=$(whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --menu "\nChoose your script type option below:\n\n(Note: changes require reboot to take effect)" 15 78 4 \
 "1" "Install INTERRUPT based script /etc/shutdownirq.py (recommended)" \
