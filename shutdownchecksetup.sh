@@ -15,6 +15,57 @@ else
     }
 fi
 
+install_interrupt_script() {
+    run_as_root curl -fsSLo /etc/shutdownirq.py https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py
+    run_as_root chmod +x /etc/shutdownirq.py
+    run_as_root sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
+}
+
+install_polling_script() {
+    dest="${1:-/etc/shutdowncheck.sh}"
+    run_as_root -fsSLo "$dest" https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh
+    run_as_root chmod +x "$dest"
+    run_as_root sed -i "\$ i ${dest} &" /etc/rc.local
+}
+
+looks_like_elec_distro() {
+    # shellcheck disable=SC1091
+    . /etc/os-release 1>/dev/null 2>&1 || :
+
+    case "${NAME:-}" in
+        *ELEC)
+            return 0
+            ;;
+    esac
+
+    case "${ID:-}" in
+        *elec)
+            return 0
+            ;;
+    esac
+
+    # shellcheck disable=SC3028
+    # *ELEC distros:
+    #   1. Use `root` for shell sessions,
+    #   2. Have the directory `/storage/.config`, and
+    #   3. Use a `sudo` wrapper that issues a warning about not needing sudo
+    #      and then exits with a non-zero status.
+    [ "${EUID:-$(id -u 2>/dev/null || :)}" -eq 0 ] && [ -d /storage/.config ] && ! sudo true
+}
+
+if looks_like_elec_distro; then
+    install_polling_script /storage/.config/shutdowncheck.sh
+    run_as_root "${SHELL:-/bin/sh}" "-$-" -c "
+echo '#!/bin/sh
+(
+/storage/.config/shutdowncheck.sh
+)&' > /storage/.config/autostart.sh
+"
+    chmod 777 /storage/.config/autostart.sh
+    chmod 777 /storage/.config/shutdowncheck.sh
+    exit
+fi
+
 if command -v whiptail 1>/dev/null 2>&1; then
     get_script_type() {
         whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --menu "\nChoose your script type option below:\n\n(Note: changes require reboot to take effect)" 15 78 4 \
@@ -79,14 +130,10 @@ if OPTION="$(get_script_type)"; then
 
     case "$OPTION" in
         1)
-            run_as_root curl -fsSLo /etc/shutdownirq.py https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py
-            run_as_root chmod +x /etc/shutdownirq.py
-            run_as_root sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
+            install_interrupt_script
             ;;
         2)
-            run_as_root -fsSLo /etc/shutdowncheck.sh https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh
-            run_as_root chmod +x /etc/shutdowncheck.sh
-            run_as_root sed -i '$ i /etc/shutdowncheck.sh &' /etc/rc.local
+            install_polling_script
             ;;
     esac
 
