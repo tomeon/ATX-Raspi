@@ -28,15 +28,15 @@ echo "==========================================================================
 
 #This loop continuously checks if the shutdown button was pressed on ATXRaspi (GPIO7 to become HIGH), and issues a shutdown when that happens.
 #It sleeps as long as that has not happened.
-while [ 1 ]; do
+while true; do
   shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
-  if [ $shutdownSignal = 0 ]; then
+  if [ "$shutdownSignal" = 0 ]; then
     /bin/sleep 0.2
   else
     pulseStart=$(date +%s%N | cut -b1-13) # mark the time when Shutoff signal went HIGH (milliseconds since epoch)
-    while [ $shutdownSignal = 1 ]; do
+    while [ "$shutdownSignal" = 1 ]; do
       /bin/sleep 0.02
-      if [ $(($(date +%s%N | cut -b1-13)-$pulseStart)) -gt $REBOOTPULSEMAXIMUM ]; then
+      if [ $(($(date +%s%N | cut -b1-13)-pulseStart)) -gt $REBOOTPULSEMAXIMUM ]; then
         echo -e "\n====================================================================================="
         echo "            SHUTDOWN request from GPIO", SHUTDOWN, ", halting Rpi ..."
         echo "====================================================================================="
@@ -46,7 +46,7 @@ while [ 1 ]; do
       shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
     done
     #pulse went LOW, check if it was long enough, and trigger reboot
-    if [ $(($(date +%s%N | cut -b1-13)-$pulseStart)) -gt $REBOOTPULSEMINIMUM ]; then
+    if [ $(($(date +%s%N | cut -b1-13)-pulseStart)) -gt $REBOOTPULSEMINIMUM ]; then
       echo -e "\n====================================================================================="
       echo "            REBOOT request from GPIO", SHUTDOWN, ", recycling Rpi ..."
       echo "====================================================================================="
