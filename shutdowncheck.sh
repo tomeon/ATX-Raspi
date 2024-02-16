@@ -3,6 +3,8 @@
 # ATXRaspi/MightyHat interrupt based shutdown/reboot script
 # Script by Felix Rusu
 
+set -eu
+
 header() {
   if [ "$#" -lt 2 ]; then
     echo 1>&2 'internal error: usage: header <padding> <line> [<line>...]'

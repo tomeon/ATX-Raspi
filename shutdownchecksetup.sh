@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 # We provide a fallback in case `EUID` is not set; silence shellcheck violation
 # warning that "In POSIX sh, EUID is undefined"
 # shellcheck disable=SC3028
