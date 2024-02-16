@@ -27,11 +27,11 @@ echo "ATXRaspi shutdown script started: asserted pins ($SHUTDOWN=input,LOW; $BOO
 while true; do
   shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
   if [ "$shutdownSignal" = 0 ]; then
-    /bin/sleep 0.2
+    sleep 0.2
   else
     pulseStart=$(date +%s%N | cut -b1-13) # mark the time when Shutoff signal went HIGH (milliseconds since epoch)
     while [ "$shutdownSignal" = 1 ]; do
-      /bin/sleep 0.02
+      sleep 0.02
       if [ $(($(date +%s%N | cut -b1-13)-pulseStart)) -gt $REBOOTPULSEMAXIMUM ]; then
         echo "ATXRaspi triggered a shutdown signal, halting Rpi ... "
         poweroff
