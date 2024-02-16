@@ -36,14 +36,14 @@ try:
 				print("\n=====================================================================================")
 				print("            SHUTDOWN request from GPIO", SHUTDOWN, ", halting Rpi ...")
 				print("=====================================================================================")
-				os.system("sudo poweroff")
+				os.system("poweroff")
 				sys.exit()
 			shutdownSignal = GPIO.input(SHUTDOWN)
 		if time.time() - pulseStart >= REBOOTPULSEMINIMUM:
 			print("\n=====================================================================================")
 			print("            REBOOT request from GPIO", SHUTDOWN, ", recycling Rpi ...")
 			print("=====================================================================================")
-			os.system("sudo reboot")
+			os.system("reboot")
 			sys.exit()
 		if GPIO.input(SHUTDOWN): #before looping we must make sure the shutdown signal went low
 			GPIO.wait_for_edge(SHUTDOWN, GPIO.FALLING)
