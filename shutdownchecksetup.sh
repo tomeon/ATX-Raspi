@@ -15,13 +15,66 @@ else
     }
 fi
 
-OPTION=$(whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --menu "\nChoose your script type option below:\n\n(Note: changes require reboot to take effect)" 15 78 4 \
-"1" "Install INTERRUPT based script /etc/shutdownirq.py (recommended)" \
-"2" "Install POLLING based script /etc/shutdowncheck.sh (classic)" \
-"3" "Disable any existing shutdown script" 3>&1 1>&2 2>&3)
+if command -v whiptail 1>/dev/null 2>&1; then
+    get_script_type() {
+        whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --menu "\nChoose your script type option below:\n\n(Note: changes require reboot to take effect)" 15 78 4 \
+            "1" "Install INTERRUPT based script /etc/shutdownirq.py (recommended)" \
+            "2" "Install POLLING based script /etc/shutdowncheck.sh (classic)" \
+            "3" "Disable any existing shutdown script" 3>&1 1>&2 2>&3
+    }
+elif (help select) 1>/dev/null 2>&1; then
+    # Eval this, as otherwise we're liable to get a syntax error from shells that
+    # do not understand `select ...; do ...; done`
+    eval '
+        get_script_type() {
+            echo 1>&2 "ATXRaspi/MightyHat shutdown/reboot script setup"
+            echo 1>&2 "Choose your script type option below (note: changes require reboot to take effect)"
 
-exitstatus=$?
-if [ $exitstatus = 0 ]; then
+            # shellcheck disable=SC3043
+            local PS3="Choose your script type option: "
+
+            # shellcheck disable=SC3008
+            select CHOICE in "Install INTERRUPT based script /etc/shutdownirq.py (recommended)" \
+                "Install POLLING based script /etc/shutdowncheck.sh (classic)" \
+                "Disable any existing shutdown script"; do
+                if [ -n "${CHOICE:-}" ]; then
+                    echo "$REPLY"
+                    break
+                else
+                    echo 1>&2 "Not a valid choice: ${REPLY}"
+                fi
+            done
+        }
+    '
+else
+    get_script_type() {
+        echo 1>&2 'ATXRaspi/MightyHat shutdown/reboot script setup'
+        echo 1>&2 "Choose your script type option below (note: changes require reboot to take effect)"
+        echo 1>&2 "\
+1) Install INTERRUPT based script /etc/shutdownirq.py (recommended)
+2) Install POLLING based script /etc/shutdowncheck.sh (classic)
+3) Disable any existing shutdown script"
+
+
+        while true; do
+            echo 1>&2 'Choose your script type option: '
+
+            if read -r REPLY; then
+                case "${REPLY:-}" in
+                    1|2|3)
+                        echo "$REPLY"
+                        return
+                        ;;
+                    *)
+                        echo 1>&2 "Not a valid choice: ${REPLY}"
+                        ;;
+                esac
+            fi
+        done
+    }
+fi
+
+if OPTION="$(get_script_type)"; then
     run_as_root sed -e '/shutdown/ s/^#*/#/' -i /etc/rc.local
 
     case "$OPTION" in
