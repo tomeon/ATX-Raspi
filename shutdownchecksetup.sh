@@ -1,5 +1,18 @@
 #!/bin/sh
 
+# We provide a fallback in case `EUID` is not set; silence shellcheck violation
+# warning that "In POSIX sh, EUID is undefined"
+# shellcheck disable=SC3028
+if [ "${EUID:-$(id -u 2>/dev/null || :)}" != 0 ]; then
+    run_as_root() {
+        sudo "$@"
+    }
+else
+    run_as_root() {
+        "$@"
+    }
+fi
+
 OPTION=$(whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --menu "\nChoose your script type option below:\n\n(Note: changes require reboot to take effect)" 15 78 4 \
 "1" "Install INTERRUPT based script /etc/shutdownirq.py (recommended)" \
 "2" "Install POLLING based script /etc/shutdowncheck.sh (classic)" \
@@ -7,18 +20,18 @@ OPTION=$(whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --me
 
 exitstatus=$?
 if [ $exitstatus = 0 ]; then
-    sudo sed -e '/shutdown/ s/^#*/#/' -i /etc/rc.local
+    run_as_root sed -e '/shutdown/ s/^#*/#/' -i /etc/rc.local
 
     case "$OPTION" in
         1)
-            curl -fsSLo /etc/shutdownirq.py https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py
-            sudo chmod +x /etc/shutdownirq.py
-            sudo sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
+            run_as_root curl -fsSLo /etc/shutdownirq.py https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py
+            run_as_root chmod +x /etc/shutdownirq.py
+            run_as_root sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
             ;;
         2)
-            curl -fsSLo /etc/shutdowncheck.sh https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh
-            sudo chmod +x /etc/shutdowncheck.sh
-            sudo sed -i '$ i /etc/shutdowncheck.sh &' /etc/rc.local
+            run_as_root -fsSLo /etc/shutdowncheck.sh https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh
+            run_as_root chmod +x /etc/shutdowncheck.sh
+            run_as_root sed -i '$ i /etc/shutdowncheck.sh &' /etc/rc.local
             ;;
     esac
 
