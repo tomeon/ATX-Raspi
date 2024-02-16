@@ -40,7 +40,7 @@ while true; do
         echo -e "\n====================================================================================="
         echo "            SHUTDOWN request from GPIO", SHUTDOWN, ", halting Rpi ..."
         echo "====================================================================================="
-        sudo poweroff
+        poweroff
         exit
       fi
       shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
@@ -50,7 +50,7 @@ while true; do
       echo -e "\n====================================================================================="
       echo "            REBOOT request from GPIO", SHUTDOWN, ", recycling Rpi ..."
       echo "====================================================================================="
-      sudo reboot
+      reboot
       exit
     fi
   fi
