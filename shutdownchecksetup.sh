@@ -39,14 +39,18 @@ install_interrupt_script() {
     dest="${1:-/etc/shutdownirq.py}"
     fetch "${SHUTDOWNCHECK_BASEURL}/shutdownirq.py" "$dest"
     run_as_root chmod +x "$dest"
-    run_as_root sed -i "$ i python ${dest} &" /etc/rc.local
+    if [ -f /etc/rc.local ]; then
+        run_as_root sed -i "$ i python ${dest} &" /etc/rc.local
+    fi
 }
 
 install_polling_script() {
     dest="${1:-/etc/shutdowncheck.sh}"
     fetch "${SHUTDOWNCHECK_BASEURL}/shutdowncheck.sh" "$dest"
     run_as_root chmod +x "$dest"
-    run_as_root sed -i "\$ i ${dest} &" /etc/rc.local
+    if [ -f /etc/rc.local ]; then
+        run_as_root sed -i "\$ i ${dest} &" /etc/rc.local
+    fi
 }
 
 looks_like_elec_distro() {
