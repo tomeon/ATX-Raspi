@@ -36,9 +36,10 @@ else
 fi
 
 install_interrupt_script() {
-    fetch "${SHUTDOWNCHECK_BASEURL}/shutdownirq.py" /etc/shutdownirq.py
-    run_as_root chmod +x /etc/shutdownirq.py
-    run_as_root sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
+    dest="${1:-/etc/shutdownirq.py}"
+    fetch "${SHUTDOWNCHECK_BASEURL}/shutdownirq.py" "$dest"
+    run_as_root chmod +x "$dest"
+    run_as_root sed -i "$ i python ${dest} &" /etc/rc.local
 }
 
 install_polling_script() {
@@ -74,15 +75,16 @@ looks_like_elec_distro() {
 }
 
 if looks_like_elec_distro; then
-    install_polling_script /storage/.config/shutdowncheck.sh
+    dest="${SHUTDOWNCHECK_POLLING_DEST:-${SHUTDOWNCHECK_DEST:-/storage/.config/shutdowncheck.sh}}"
+    install_polling_script "$dest"
     run_as_root "${SHELL:-/bin/sh}" "-$-" -c "
 echo '#!/bin/sh
 (
-/storage/.config/shutdowncheck.sh
+${dest}
 )&' > /storage/.config/autostart.sh
 "
     chmod 777 /storage/.config/autostart.sh
-    chmod 777 /storage/.config/shutdowncheck.sh
+    chmod 777 "$dest"
     exit
 fi
 
@@ -150,10 +152,10 @@ if OPTION="$(get_script_type)"; then
 
     case "$OPTION" in
         1)
-            install_interrupt_script
+            install_interrupt_script "${SHUTDOWNCHECK_INTERRUPT_DEST:-${SHUTDOWNCHECK_DEST:-}}"
             ;;
         2)
-            install_polling_script
+            install_polling_script "${SHUTDOWNCHECK_POLLING_DEST:-${SHUTDOWNCHECK_DEST:-}}"
             ;;
     esac
 
