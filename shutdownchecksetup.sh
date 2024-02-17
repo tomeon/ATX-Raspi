@@ -15,15 +15,30 @@ else
     }
 fi
 
+if command -v curl 1>/dev/null 2>&1; then
+    fetch() {
+        run_as_root curl -fsSLo "$2" "$1"
+    }
+elif command -v wget 1>/dev/null 2>&1; then
+    fetch() {
+        run_as_root wget -o "$2" "$1"
+    }
+else
+    fetch() {
+        echo 1>&2 "neither curl nor wget are available; cannot fetch '$1' into '$2'"
+        return 127
+    }
+fi
+
 install_interrupt_script() {
-    run_as_root curl -fsSLo /etc/shutdownirq.py https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py
+    fetch https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py /etc/shutdownirq.py
     run_as_root chmod +x /etc/shutdownirq.py
     run_as_root sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
 }
 
 install_polling_script() {
     dest="${1:-/etc/shutdowncheck.sh}"
-    run_as_root -fsSLo "$dest" https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh
+    fetch https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh "$dest"
     run_as_root chmod +x "$dest"
     run_as_root sed -i "\$ i ${dest} &" /etc/rc.local
 }
