@@ -5,7 +5,7 @@ set -eu
 SHUTDOWNCHECK_OWNER="${SHUTDOWNCHECK_OWNER:-LowPowerLab}"
 SHUTDOWNCHECK_REPO="${SHUTDOWNCHECK_REPO:-ATX-Raspi}"
 SHUTDOWNCHECK_REV="${SHUTDOWNCHECK_REV:-master}"
-SHUTDOWNCHECK_BASEURL="${SHUTDOWNCHECK_BASEURL:-"https://githubusercontent.com/${SHUTDOWNCHECK_OWNER}/${SHUTDOWNCHECK_REPO}/${SHUTDOWNCHECK_REV}"}"
+SHUTDOWNCHECK_BASEURL="${SHUTDOWNCHECK_BASEURL:-"https://raw.githubusercontent.com/${SHUTDOWNCHECK_OWNER}/${SHUTDOWNCHECK_REPO}/${SHUTDOWNCHECK_REV}"}"
 
 # We provide a fallback in case `EUID` is not set; silence shellcheck violation
 # warning that "In POSIX sh, EUID is undefined"
