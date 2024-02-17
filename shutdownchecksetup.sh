@@ -2,6 +2,11 @@
 
 set -eu
 
+SHUTDOWNCHECK_OWNER="${SHUTDOWNCHECK_OWNER:-LowPowerLab}"
+SHUTDOWNCHECK_REPO="${SHUTDOWNCHECK_REPO:-ATX-Raspi}"
+SHUTDOWNCHECK_REV="${SHUTDOWNCHECK_REV:-master}"
+SHUTDOWNCHECK_BASEURL="${SHUTDOWNCHECK_BASEURL:-"https://githubusercontent.com/${SHUTDOWNCHECK_OWNER}/${SHUTDOWNCHECK_REPO}/${SHUTDOWNCHECK_REV}"}"
+
 # We provide a fallback in case `EUID` is not set; silence shellcheck violation
 # warning that "In POSIX sh, EUID is undefined"
 # shellcheck disable=SC3028
@@ -31,14 +36,14 @@ else
 fi
 
 install_interrupt_script() {
-    fetch https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdownirq.py /etc/shutdownirq.py
+    fetch "${SHUTDOWNCHECK_BASEURL}/shutdownirq.py" /etc/shutdownirq.py
     run_as_root chmod +x /etc/shutdownirq.py
     run_as_root sed -i '$ i python /etc/shutdownirq.py &' /etc/rc.local
 }
 
 install_polling_script() {
     dest="${1:-/etc/shutdowncheck.sh}"
-    fetch https://githubusercontent.com/LowPowerLab/ATX-Raspi/master/shutdowncheck.sh "$dest"
+    fetch "${SHUTDOWNCHECK_BASEURL}/shutdowncheck.sh" "$dest"
     run_as_root chmod +x "$dest"
     run_as_root sed -i "\$ i ${dest} &" /etc/rc.local
 }
