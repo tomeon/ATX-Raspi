@@ -1,0 +1,13 @@
+# VM disk images
+*.qcow2
+
+# Nix build results
+result
+result-*
+repl-result-*
+
+# NixOS test driver REPL history
+.nixos-test-history
+
+# Binary executable.
+/nix/pkgs/gpiosimtest/gpiosimtest
