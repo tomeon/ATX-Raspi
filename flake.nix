@@ -63,7 +63,20 @@
         treefmt = {config, ...}: {
           flakeFormatter = true;
           projectRootFile = "flake.nix";
-          programs.alejandra.enable = true;
+
+          programs = {
+            alejandra.enable = true;
+            gofumpt.enable = true;
+            ruff.enable = true;
+            shellcheck.enable = true;
+            shfmt.enable = true;
+          };
+
+          settings.formatter = lib.mkIf config.programs.shfmt.enable {
+            # Empty out the CLI options list so that `shfmt` uses the settings
+            # from `.editorconfig`.
+            shfmt.options = lib.mkForce [];
+          };
         };
       };
     });
