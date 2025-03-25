@@ -111,7 +111,7 @@ if have_gpiod:
 						else:
 							pulse_start = None
 							pulse_end = None
-		except:
+		except Exception:
 			pass
 else:
 	import RPi.GPIO as GPIO
@@ -144,7 +144,7 @@ else:
 				sys.exit()
 			if GPIO.input(SHUTDOWN): # before looping we must make sure the shutdown signal went low
 				GPIO.wait_for_edge(SHUTDOWN, GPIO.FALLING)
-	except:
+	except Exception:
 		pass
 	finally:
 		GPIO.cleanup()
