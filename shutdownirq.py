@@ -8,16 +8,36 @@ import sys
 import time
 
 # Reboot pulse signal should be at least this long (seconds).
-REBOOTPULSEMINIMUM = 0.2
+REBOOTPULSEMINIMUM = float(os.environ.get("ATX_RASPI_PULSE_MIN", 0.2))
 
 # Reboot pulse signal should be at most this long (seconds).
-REBOOTPULSEMAXIMUM = 1.0
+REBOOTPULSEMAXIMUM = float(os.environ.get("ATX_RASPI_PULSE_MAX", 1.0))
 
 # GPIO pin used for shutdown signal.
-SHUTDOWN = 7
+SHUTDOWN = int(os.environ.get("ATX_RASPI_SHUTDOWN_PIN", 7))
 
 # GPIO pin used for boot signal.
-BOOT = 8
+BOOT = int(os.environ.get("ATX_RASPI_BOOT_PIN", 8))
+
+failed = [msg for (cond, msg) in [
+    (REBOOTPULSEMINIMUM > 0, "ATX_RASPI_PULSE_MIN ({0}) must be greater than 0".format(REBOOTPULSEMINIMUM)),
+    (REBOOTPULSEMAXIMUM > REBOOTPULSEMINIMUM, "ATX_RASPI_PULSE_MAX ({0} must be greater than ATX_RASPI_PULSE_MIN ({1})".format(REBOOTPULSEMAXIMUM, REBOOTPULSEMINIMUM)),
+    (SHUTDOWN >= 0, "ATX_RASPI_SHUTDOWN_PIN ({0}) must be greater than 0".format(SHUTDOWN)),
+    (BOOT >= 0, "ATX_RASPI_BOOT_PIN ({0}) must be greater than 0".format(BOOT)),
+    (SHUTDOWN != 0, "ATX_RASPI_SHUTDOWN_PIN ({0}) must be distinct from ATX_RASPI_BOOT_PIN ({1})".format(SHUTDOWN, BOOT)),
+] if not cond]
+
+if len(failed) > 0:
+    raise ValueError(", ".join(failed))
+
+if os.environ.get("ATX_RASPI_DRY_RUN", "") == "":
+	def handle_press(*command):
+		os.system(*command)
+		sys.exit()
+else:
+	def handle_press(*command):
+		print("[dry-run] ", " ".join(command))
+		sys.exit()
 
 def diag(*msgs):
 	linelen = max([len(msg) for msg in msgs]) + 2
@@ -43,7 +63,7 @@ except ImportError:
 
 if have_gpiod:
 
-	CHIP = "/dev/gpiochip0"
+	CHIP = os.environ.get("ATX_RASPI_CHIP", "/dev/gpiochip0")
 	CONSUMER = "atx-raspi"
 	CONFIG = {
 		SHUTDOWN: gpiod.LineSettings(direction=Direction.INPUT, edge_detection=Edge.BOTH),

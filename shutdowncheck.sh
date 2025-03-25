@@ -32,45 +32,78 @@ header() {
   echo "=========================================================================================="
 }
 
-f2msec() {
+f2nsec() {
   case "${1?}" in
     *.*.*)
+      echo 1>&2 "Not a valid decimal number: ${1}"
       return 1
       ;;
     *.*)
-      __f2msec_whole="${1%%.*}"
-      __f2msec_fractional="${1#*.}"
+      __f2nsec_whole="${1%%.*}"
+      __f2nsec_fractional="${1#*.}"
 
-      __f2msec_exp="${#__f2msec_fractional}"
-      __f2msec_scale=1
-      while [ "$__f2msec_exp" -gt 0 ]; do
-        __f2msec_scale="$(( __f2msec_scale * 10 ))"
-        __f2msec_exp="$(( __f2msec_exp - 1 ))"
+      __f2nsec_exp="${#__f2nsec_fractional}"
+      __f2nsec_scale=1
+
+      while [ "$__f2nsec_exp" -gt 0 ]; do
+        __f2nsec_scale="$(( __f2nsec_scale * 10 ))"
+        __f2nsec_exp="$(( __f2nsec_exp - 1 ))"
       done
 
-      echo "$(( (__f2msec_whole * 1000) + ((__f2msec_fractional * 1000) / __f2msec_scale) ))"
+      echo "$(( (__f2nsec_whole * 1000000000) + ((__f2nsec_fractional * 1000000000) / __f2nsec_scale) ))"
       ;;
     *)
-      echo "$(( "$1" * 1000 ))"
+      echo "$(( "$1" * 1000000000 ))"
       ;;
   esac
 }
 
+ATX_RASPI_PULSE_MIN="${ATX_RASPI_PULSE_MIN:-0.2}"
+ATX_RASPI_PULSE_MAX="${ATX_RASPI_PULSE_MAX:-0.6}"
+
+REBOOTPULSEMINIMUM="$(f2nsec "$ATX_RASPI_PULSE_MIN")" #reboot pulse signal should be at least this long
+REBOOTPULSEMAXIMUM="$(f2nsec "$ATX_RASPI_PULSE_MAX")" #reboot pulse signal should be at most this long
+
 #This is GPIO 7 (pin 26 on the pinout diagram).
 #This is an input from ATXRaspi to the Pi.
-#When button is held for ~3 seconds, this pin will become HIGH signalling to this script to poweroff the Pi.
-SHUTDOWN=7
-REBOOTPULSEMINIMUM=200      #reboot pulse signal should be at least this long
-REBOOTPULSEMAXIMUM=600      #reboot pulse signal should be at most this long
+#When button is held for ~3 seconds, this pin will become HIGH signaling to this script to poweroff the Pi.
+SHUTDOWN="${ATX_RASPI_SHUTDOWN_PIN:-7}"
 
 #Added reboot feature (with ATXRaspi R2.6 (or ATXRaspi 2.5 with blue dot on chip)
 #Hold ATXRaspi button for at least 500ms but no more than 2000ms and a reboot HIGH pulse of 500ms length will be issued
 #This is GPIO 8 (pin 24 on the pinout diagram).
 #This is an output from Pi to ATXRaspi and signals that the Pi has booted.
 #This pin is asserted HIGH as soon as this script runs (by writing "1" to /sys/class/gpio/gpio8/value)
-BOOT=8
+BOOT="${ATX_RASPI_BOOT_PIN:-8}"
 
-CHIP="${CHIP:-/dev/gpiochip0}"
+CHIP="${ATX_RASPI_CHIP:-/dev/gpiochip0}"
+
+failed=''
+
+if [ "$REBOOTPULSEMINIMUM" -le 0 ]; then
+  failed="${failed:+"${failed}, "}ATX_RASPI_PULSE_MIN (${ATX_RASPI_PULSE_MIN}) must be greater than 0"
+fi
+
+if [ "$REBOOTPULSEMAXIMUM" -le "$REBOOTPULSEMINIMUM" ]; then
+  failed="${failed:+"${failed}, "}ATX_RASPI_PULSE_MAX (${ATX_RASPI_PULSE_MAX}) must be greater than ATX_RASPI_PULSE_MIN (${ATX_RASPI_PULSE_MIN})"
+fi
+
+if [ "$SHUTDOWN" -lt 0 ]; then
+  failed="${failed:+"${failed}, "}ATX_RASPI_SHUTDOWN_PIN (${SHUTDOWN}) must be greater than 0"
+fi
+
+if [ "$BOOT" -lt 0 ]; then
+  failed="${failed:+"${failed}, "}ATX_RASPI_BOOT_PIN (${BOOT}) must be greater than 0"
+fi
+
+if [ "$SHUTDOWN" -eq "$BOOT" ]; then
+  failed="${failed:+"${failed}, "}ATX_RASPI_SHUTDOWN_PIN (${SHUTDOWN}) must be distinct from ATX_RASPI_BOOT_PIN (${BOOT})"
+fi
+
+if [ -n "${failed:-}" ]; then
+  echo 1>&2 "ERROR: $failed"
+  exit 1
+fi
 
 if { command -v gpioset && command -v gpiomon ; } 1>/dev/null 2>&1; then
   init_shutdown_pin() {
@@ -87,18 +120,18 @@ if { command -v gpioset && command -v gpiomon ; } 1>/dev/null 2>&1; then
       case "$event" in
         # Rising
         1)
-          pulseStart="$(f2msec "$seconds")"
+          pulseStart="$(f2nsec "$seconds")"
           ;;
         # Falling
         2)
-          pulseEnd="$(f2msec "$seconds")"
+          pulseEnd="$(f2nsec "$seconds")"
           pulseStart="${pulseStart:-"$pulseEnd"}"
           pulseDuration="$(( pulseEnd - pulseStart ))"
 
-          if [ "$pulseDuration" -gt $REBOOTPULSEMAXIMUM ]; then
+          if [ "$pulseDuration" -gt "$REBOOTPULSEMAXIMUM" ]; then
             header 12 "SHUTDOWN request on chip ${CHIP?} from GPIO${SHUTDOWN}, halting Rpi ..."
             return
-          elif [ "$pulseDuration" -gt $REBOOTPULSEMINIMUM ]; then
+          elif [ "$pulseDuration" -gt "$REBOOTPULSEMINIMUM" ]; then
             header 12 "REBOOT request on chip ${CHIP?} from GPIO${SHUTDOWN?}, recycling Rpi ..."
             reboot
             return
@@ -133,10 +166,10 @@ elif [ -e /sys/class/gpio/export ]; then
       if [ "$shutdownSignal" = 0 ]; then
         sleep 0.2
       else
-        pulseStart=$(date +%s%N | cut -b1-13) # mark the time when Shutoff signal went HIGH (milliseconds since epoch)
+        pulseStart="$(date +%s%N)" # mark the time when Shutoff signal went HIGH (milliseconds since epoch)
         while [ "$shutdownSignal" = 1 ]; do
           sleep 0.02
-          if [ $(($(date +%s%N | cut -b1-13)-pulseStart)) -gt $REBOOTPULSEMAXIMUM ]; then
+          if [ "$(( "$(date +%s%N)" - pulseStart ))" -gt "$REBOOTPULSEMAXIMUM" ]; then
             header 12 "SHUTDOWN request from GPIO${SHUTDOWN}, halting Rpi ..."
             poweroff
             return
@@ -144,7 +177,7 @@ elif [ -e /sys/class/gpio/export ]; then
           shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
         done
         #pulse went LOW, check if it was long enough, and trigger reboot
-        if [ $(($(date +%s%N | cut -b1-13)-pulseStart)) -gt $REBOOTPULSEMINIMUM ]; then
+        if [ "$(( "$(date +%s%N)" - pulseStart ))" -gt "$REBOOTPULSEMINIMUM" ]; then
           header 12 "REBOOT request from GPIO${SHUTDOWN}, recycling Rpi ..."
           reboot
           return
