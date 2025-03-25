@@ -10,7 +10,7 @@ SHUTDOWNCHECK_BASEURL="${SHUTDOWNCHECK_BASEURL:-"https://raw.githubusercontent.c
 # We provide a fallback in case `EUID` is not set; silence shellcheck violation
 # warning that "In POSIX sh, EUID is undefined"
 # shellcheck disable=SC3028
-if [ "${EUID:-$(id -u 2>/dev/null || :)}" != 0 ]; then
+if [ "${EUID:-$(id -u 2> /dev/null || :)}" != 0 ]; then
     run_as_root() {
         sudo "$@"
     }
@@ -20,11 +20,11 @@ else
     }
 fi
 
-if command -v curl 1>/dev/null 2>&1; then
+if command -v curl 1> /dev/null 2>&1; then
     fetch() {
         run_as_root curl -fsSLo "$2" "$1"
     }
-elif command -v wget 1>/dev/null 2>&1; then
+elif command -v wget 1> /dev/null 2>&1; then
     fetch() {
         run_as_root wget -o "$2" "$1"
     }
@@ -55,7 +55,7 @@ install_polling_script() {
 
 looks_like_elec_distro() {
     # shellcheck disable=SC1091
-    . /etc/os-release 1>/dev/null 2>&1 || :
+    . /etc/os-release 1> /dev/null 2>&1 || :
 
     case "${NAME:-}" in
         *ELEC)
@@ -75,7 +75,7 @@ looks_like_elec_distro() {
     #   2. Have the directory `/storage/.config`, and
     #   3. Use a `sudo` wrapper that issues a warning about not needing sudo
     #      and then exits with a non-zero status.
-    [ "${EUID:-$(id -u 2>/dev/null || :)}" -eq 0 ] && [ -d /storage/.config ] && ! sudo true
+    [ "${EUID:-$(id -u 2> /dev/null || :)}" -eq 0 ] && [ -d /storage/.config ] && ! sudo true
 }
 
 if looks_like_elec_distro; then
@@ -92,14 +92,14 @@ ${dest}
     exit
 fi
 
-if command -v whiptail 1>/dev/null 2>&1; then
+if command -v whiptail 1> /dev/null 2>&1; then
     get_script_type() {
         whiptail --title "ATXRaspi/MightyHat shutdown/reboot script setup" --menu "\nChoose your script type option below:\n\n(Note: changes require reboot to take effect)" 15 78 4 \
             "1" "Install INTERRUPT based script /etc/shutdownirq.py (recommended)" \
             "2" "Install POLLING based script /etc/shutdowncheck.sh (classic)" \
             "3" "Disable any existing shutdown script" 3>&1 1>&2 2>&3
     }
-elif (help select) 1>/dev/null 2>&1; then
+elif (help select) 1> /dev/null 2>&1; then
     # Eval this, as otherwise we're liable to get a syntax error from shells that
     # do not understand `select ...; do ...; done`
     eval '
@@ -132,13 +132,12 @@ else
 2) Install POLLING based script /etc/shutdowncheck.sh (classic)
 3) Disable any existing shutdown script"
 
-
         while true; do
             echo 1>&2 'Choose your script type option: '
 
             if read -r REPLY; then
                 case "${REPLY:-}" in
-                    1|2|3)
+                    1 | 2 | 3)
                         echo "$REPLY"
                         return
                         ;;
