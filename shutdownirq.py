@@ -39,6 +39,15 @@ else:
 		print("[dry-run] ", " ".join(command))
 		sys.exit()
 
+if os.environ.get("ATX_RASPI_DRY_RUN", "") == "":
+	def handle_press(*command):
+		os.system(*command)
+		sys.exit()
+else:
+	def handle_press(*command):
+		print("[dry-run] ", " ".join(command))
+		sys.exit()
+
 def diag(*msgs):
 	linelen = max([len(msg) for msg in msgs]) + 2
 	wrapper = "=" * linelen
@@ -92,12 +101,12 @@ if have_gpiod:
 						if pulse_duration >= REBOOTPULSEMAXIMUM:
 							print()
 							diag("SHUTDOWN request on chip {0} from GPIO{1}, halting Rpi ...".format(CHIP, SHUTDOWN))
-							os.system("poweroff")
+							handle_press("poweroff")
 							sys.exit()
 						elif pulse_duration >= REBOOTPULSEMINIMUM:
 							print()
 							diag("REBOOT request on chip {0} from GPIO{1}, recycling Rpi ...".format(CHIP, SHUTDOWN))
-							os.system("reboot")
+							handle_press("reboot")
 							sys.exit()
 						else:
 							pulse_start = None
@@ -125,13 +134,13 @@ else:
 				if(time.time() - pulse_start >= REBOOTPULSEMAXIMUM):
 					print()
 					diag("SHUTDOWN request from GPIO{0}, halting Rpi ...".format(SHUTDOWN))
-					os.system("poweroff")
+					handle_press("poweroff")
 					sys.exit()
 				shutdown_signal = GPIO.input(SHUTDOWN)
 			if time.time() - pulse_start >= REBOOTPULSEMINIMUM:
 				print()
 				diag("REBOOT request from GPIO{0}, recycling Rpi ...".format(SHUTDOWN))
-				os.system("reboot")
+				handle_press("reboot")
 				sys.exit()
 			if GPIO.input(SHUTDOWN): # before looping we must make sure the shutdown signal went low
 				GPIO.wait_for_edge(SHUTDOWN, GPIO.FALLING)

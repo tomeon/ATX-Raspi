@@ -105,6 +105,16 @@ if [ -n "${failed:-}" ]; then
   exit 1
 fi
 
+if [ -n "${ATX_RASPI_DRY_RUN:-}" ]; then
+  handle_press() {
+    echo "[dry-run] $*"
+  }
+else
+  handle_press() {
+    "$@"
+  }
+fi
+
 if { command -v gpioset && command -v gpiomon ; } 1>/dev/null 2>&1; then
   init_shutdown_pin() {
     # NOP
@@ -130,10 +140,11 @@ if { command -v gpioset && command -v gpiomon ; } 1>/dev/null 2>&1; then
 
           if [ "$pulseDuration" -gt "$REBOOTPULSEMAXIMUM" ]; then
             header 12 "SHUTDOWN request on chip ${CHIP?} from GPIO${SHUTDOWN}, halting Rpi ..."
+            handle_press poweroff
             return
           elif [ "$pulseDuration" -gt "$REBOOTPULSEMINIMUM" ]; then
             header 12 "REBOOT request on chip ${CHIP?} from GPIO${SHUTDOWN?}, recycling Rpi ..."
-            reboot
+            handle_press reboot
             return
           else
             unset pulseStart pulseEnd
@@ -171,7 +182,7 @@ elif [ -e /sys/class/gpio/export ]; then
           sleep 0.02
           if [ "$(( "$(date +%s%N)" - pulseStart ))" -gt "$REBOOTPULSEMAXIMUM" ]; then
             header 12 "SHUTDOWN request from GPIO${SHUTDOWN}, halting Rpi ..."
-            poweroff
+            handle_press poweroff
             return
           fi
           shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
@@ -179,7 +190,7 @@ elif [ -e /sys/class/gpio/export ]; then
         #pulse went LOW, check if it was long enough, and trigger reboot
         if [ "$(( "$(date +%s%N)" - pulseStart ))" -gt "$REBOOTPULSEMINIMUM" ]; then
           header 12 "REBOOT request from GPIO${SHUTDOWN}, recycling Rpi ..."
-          reboot
+          handle_press reboot
           return
         fi
       fi
