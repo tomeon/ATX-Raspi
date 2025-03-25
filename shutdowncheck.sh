@@ -173,7 +173,7 @@ elif [ -e /sys/class/gpio/export ]; then
     #ATXRaspi (GPIO7 to become HIGH), and issues a shutdown when that happens.
     #It sleeps as long as that has not happened.
     while true; do
-      shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
+      shutdownSignal="$(cat "/sys/class/gpio/gpio${SHUTDOWN}/value")"
       if [ "$shutdownSignal" = 0 ]; then
         sleep 0.2
       else
@@ -185,7 +185,7 @@ elif [ -e /sys/class/gpio/export ]; then
             handle_press poweroff
             return
           fi
-          shutdownSignal=$(cat /sys/class/gpio/gpio$SHUTDOWN/value)
+          shutdownSignal="$(cat "/sys/class/gpio/gpio${SHUTDOWN}/value")"
         done
         #pulse went LOW, check if it was long enough, and trigger reboot
         if [ "$(( "$(date +%s%N)" - pulseStart ))" -gt "$REBOOTPULSEMINIMUM" ]; then
